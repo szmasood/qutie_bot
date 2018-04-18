@@ -70,7 +70,7 @@ def get_question_answers(enhanced_img):
     for line in answers:
         a = line.split('\n')
         for answer in a:
-            lines.append(answer)
+            lines.append(answer.lower())
 
     answers = lines
     question_cleaned = remove_stop_words(question.split(' '))
