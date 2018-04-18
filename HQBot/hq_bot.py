@@ -65,6 +65,8 @@ def get_question_answers(enhanced_img):
     question = split_text[0].replace('\n', ' ')
     answers = split_text[1:]
 
+    answers = list(filter(lambda x: ' ' not in x, answers))
+
     # Sometimes answers have newlines
     lines = []
     for line in answers:
@@ -96,6 +98,19 @@ def get_search_results(api_key, api_base, cx, query):
     return snippets
 
 
+def tokenize_answers(answers):
+    """
+    Create a dictionary of {answer: [answer_tokenied]}
+    :param answers: list of answers from OCR
+    :return: dict of answers and respective tokens
+    """
+    answer_dict = {}
+    for answer in answers:
+        answer_split = answer.split()
+        answer_dict[answer] = answer_split
+    return answer_dict
+
+
 def occurrence_pct(search_results, answers):
     """
     Count occurrences of answers in search results
@@ -109,11 +124,17 @@ def occurrence_pct(search_results, answers):
 
     results = []
 
+    tokenize_answers_dict = tokenize_answers(answers)
     for answer in answers:
-        if answer in count_histo:
-            results.append((answer, (float(count_histo[answer])/num_words) * 100))
+        answer_tokens = tokenize_answers_dict[answer]
+        occurrence_count = 0
+        for token in answer_tokens:
+            if token in count_histo:
+                occurrence_count += count_histo[token]
+        total_answer_occurrence = float(occurrence_count)/len(answer_tokens)
+        results.append((answer, (total_answer_occurrence/num_words) * 100))
 
-    return sorted(results, key=lambda x: x[1], reverse=True) if results else [('',0)]
+    return sorted(results, key=lambda x: x[1], reverse=True)
 
 
 def get_weighted_results(question_results, answer_results, answers):
@@ -129,12 +150,7 @@ def get_weighted_results(question_results, answer_results, answers):
 
     weighted_results = []
     for answer in answers:
-        weighted = 0
-        if answer in dict_question_results and answer in dict_answer_results:
-            weighted = dict_question_results[answer] * 0.65 + dict_answer_results[answer] * 0.35
-        else:
-            if answer in dict_answer_results:
-                weighted = dict_answer_results[answer]
+        weighted = dict_question_results[answer] * 0.65 + dict_answer_results[answer] * 0.35
         weighted_results.append((answer, weighted))
 
     return sorted(weighted_results, key=lambda x: x[1], reverse=True)
