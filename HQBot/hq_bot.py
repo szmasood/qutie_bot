@@ -93,6 +93,10 @@ def get_search_results(api_key, api_base, cx, query):
                   'q': query}
     request = requests.get(api_base, params=parameters)
     data = json.loads(request.content)
+
+    if not data.get('items'):
+        return None
+
     snippets = [item['snippet'].replace('\n', '') for item in data['items']]
     snippets = [remove_stop_words(snippet.split(' ')) for snippet in snippets]
     return snippets
@@ -173,6 +177,11 @@ def run(search_api_key, search_api_base, cx, ss_path):
     print()
 
     question_query = get_search_results(search_api_key, search_api_base, cx, question)
+
+    if question_query is None:
+        print('\n -> No search results found (question query)')
+        return
+
     question_query_results = occurrence_pct(question_query, answers)
 
     print('Results with just question')
@@ -180,6 +189,11 @@ def run(search_api_key, search_api_base, cx, ss_path):
     print()
 
     answer_query = get_search_results(search_api_key, search_api_base, cx, '{} {}'.format(question, ' '.join(answers)))
+
+    if answer_query is None:
+        print('\n -> No search results found (answer query)')
+        return
+
     answer_query_results = occurrence_pct(answer_query, answers)
 
     weighted_results = get_weighted_results(question_query_results, answer_query_results, answers)
